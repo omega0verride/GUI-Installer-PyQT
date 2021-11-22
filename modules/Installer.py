@@ -20,20 +20,7 @@ class WorkerSignals(QObject):
 
 
 class Installer(QObject):
-    """
-    REF: https://www.pythonguis.com/tutorials/multithreading-pyqt-applications-qthreadpool/
-    Worker thread
-
-    Inherits from QRunnable to handler worker thread setup, signals and wrap-up.
-
-    :param callback: The function callback to run on this worker thread. Supplied args and
-                     kwargs will be passed through to the runner.
-    :type callback: function
-    :param args: Arguments to pass to the callback function
-    :param kwargs: Keywords to pass to the callback function
-    """
-
-    def __init__(self, install_destination_folder, source_app_files_folder, appName, *args, **kwargs):
+    def __init__(self, install_destination_folder, source_app_files_folder, appName, addDesktopShortcut, addStartMenuEntry, startOnBoot, launchAfterInstall, exe_folder, exe_path, icon_path, *args, **kwargs):
         super(Installer, self).__init__()
         self.args = args
         self.kwargs = kwargs
@@ -45,27 +32,34 @@ class Installer(QObject):
         self.install_destination_folder = install_destination_folder
         self.source_app_files_folder = source_app_files_folder
         self.appName = appName
+        self.addDesktopShortcut = addDesktopShortcut
+        self.addStartMenuEntry = addStartMenuEntry
+        self.startOnBoot = startOnBoot
+        self.launchAfterInstall = launchAfterInstall
+        self.exe_path = exe_path
+        self.exe_folder = exe_folder
+        self.icon_path = icon_path
 
     @pyqtSlot()
     def run(self):
-        '''
-        Initialise the runner function with passed args, kwargs.
-        '''
         try:
             self.updateLogBox("Starting Installation Process...")
             self.signals.start.emit()
             self.create_folder_in_install_driectory(self.install_destination_folder)
             if self.running:
                 self.copy_files_to_install_dir(self.source_app_files_folder, self.install_destination_folder,)
-            # self.addShortcuts()
-            # self.change_folder_permissions(install_folder)
             if self.running:
-                self.updateLogBox("Done!")
+                self.addShortcuts()   # these are not crucial for the installation so we can continue even if they fail.
+                if self.startOnBoot:  # ..
+                    self.addToBoot()  # ..
+                self.updateLogBox("\nDone!")
+                if self.launchAfterInstall:
+                    Popen(self.exe_path,  cwd=self.exe_folder)
                 self.signals.finished.emit()
             else:
                 self.signals.abort.emit()
         except:
-            self.updateLogBox(str(traceback.format_exc()))
+            self.updateLogBox(traceback.format_exc())
             self.stop()
 
     def stop(self):
@@ -74,7 +68,7 @@ class Installer(QObject):
 
     def updateLogBox(self, data):
         print(str(data))
-        self.signals.progress.emit(data)
+        self.signals.progress.emit(str(data))
 
     def create_folder_in_install_driectory(self, path):
         try:
@@ -83,7 +77,7 @@ class Installer(QObject):
                 time.sleep(2)  # wait for folder to be removed
         except:
             self.updateLogBox("Could not delete old destination folder -> " + str(path) + "\n Try running as admin or manually deleting the directory.")
-            self.updateLogBox(str(traceback.format_exc()))
+            self.updateLogBox(traceback.format_exc())
             self.stop()
             return
 
@@ -91,14 +85,14 @@ class Installer(QObject):
             os.makedirs(path, mode=0o777, exist_ok=False)
         except:
             self.updateLogBox("Could not create destination folder -> " + str(path) + "\n Try running as admin or manually creating the directory.")
-            self.updateLogBox(str(traceback.format_exc()))
+            self.updateLogBox(traceback.format_exc())
             self.stop()
             return
 
         try:
             os.chmod(path, 0o777)
         except:
-            self.updateLogBox(str(traceback.format_exc()))
+            self.updateLogBox(traceback.format_exc())
             self.stop()
             return
 
@@ -106,7 +100,7 @@ class Installer(QObject):
             self.change_folder_permissions_windows(path)
         except:
             self.updateLogBox("Could not update folder permissions for Windows.")
-            self.updateLogBox(str(traceback.format_exc()))
+            self.updateLogBox(traceback.format_exc())
             self.stop()
             return
 
@@ -124,53 +118,51 @@ class Installer(QObject):
             copy_tree(src, dest)
         except:
             self.updateLogBox("Could not copy files!")
-            self.updateLogBox(str(traceback.format_exc()))
+            self.updateLogBox(traceback.format_exc())
             self.stop()
 
-    # def addShortcuts():
-    #     print("Adding Shortcuts")
-    #     if addDesktopShortcut:
-    #         try:
-    #             print('Creating Desktop Shortcut...')
-    #             updateLogBox('Creating Desktop Shortcut...')
-    #
-    #             desktop = winshell.desktop()
-    #             path = os.path.join(desktop, "%s.lnk" % appname)
-    #             target = os.path.join(defaultInstallDirectory, appname, exe)
-    #             wDir = os.path.join(defaultInstallDirectory, appname)
-    #             icon = os.path.join(defaultInstallDirectory, appname, icon_directory)
-    #
-    #             shell = Dispatch('WScript.Shell')
-    #             shortcut = shell.CreateShortCut(path)
-    #             shortcut.Targetpath = target
-    #             shortcut.WorkingDirectory = wDir
-    #             shortcut.IconLocation = icon
-    #             shortcut.save()
-    #             print("Desktop Shortcut Created Successfully")
-    #             updateLogBox("Desktop Shortcut Created Successfully")
-    #         except Exception as ex:
-    #             print(str(traceback.format_exc()))
-    #             updateLogBox(str(traceback.format_exc()))
-    #     if addStartMenuEntry:
-    #         print('Creating Start Menu Shortcut...')
-    #         try:
-    #             print('Creating StartMenu Entry...')
-    #             updateLogBox('Creating StartMenu Entry...')
-    #             start_menu = winshell.start_menu()
-    #             print(start_menu)
-    #             path = os.path.join(start_menu, "%s.lnk" % appname)
-    #             target = os.path.join(defaultInstallDirectory, appname, exe)
-    #             wDir = os.path.join(defaultInstallDirectory, appname)
-    #             icon = os.path.join(defaultInstallDirectory, appname, icon_directory)
-    #             print('-------------', start_menu, path, target, wDir, icon)
-    #             shell = Dispatch('WScript.Shell')
-    #             shortcut = shell.CreateShortCut(path)
-    #             shortcut.Targetpath = target
-    #             shortcut.WorkingDirectory = wDir
-    #             shortcut.IconLocation = icon
-    #             shortcut.save()
-    #             print("StartMenu Entry Created Successfully")
-    #             updateLogBox("StartMenu Entry Created Successfully")
-    #         except Exception as ex:
-    #             print(str(traceback.format_exc()))
-    #             updateLogBox(str(traceback.format_exc()))
+    def addShortcuts(self):
+        if os.name == "nt":
+            platform = "win"
+        if platform == "linux2":
+            platform = "linux"
+
+        if platform.startswith('win'):
+            self.add_win_shortcuts()
+        elif platform.startswith('darwin'):
+            pass
+        else:
+            pass
+
+    def add_win_shortcuts(self):
+        import winshell
+        from win32com.client import Dispatch
+        from win32com.shell import shell, shellcon
+        shell_ = Dispatch('WScript.Shell')
+        shortcuts = []
+        if self.addDesktopShortcut:
+            Desktop = {"type": "Desktop", "shortcut": shell_.CreateShortCut(os.path.join(winshell.desktop(), "%s.lnk" % self.appName))}
+            shortcuts.append(Desktop)
+        if self.addStartMenuEntry:
+            StartMenu = {"type": "Start Menu", "shortcut": shell_.CreateShortCut(os.path.join(shell.SHGetFolderPath(0, shellcon.CSIDL_PROGRAMS, None, 0), "%s.lnk" % self.appName))}
+            shortcuts.append(StartMenu)
+        for s in shortcuts:
+            try:
+                self.updateLogBox('\nCreating '+s['type']+' Shortcut ')
+                # sterelize appname first
+                shortcut = s['shortcut']
+                shortcut.WindowStyle = 0
+                shortcut.Description = self.appName
+                shortcut.Targetpath = self.exe_path
+                shortcut.WorkingDirectory = self.exe_folder
+                shortcut.IconLocation = self.icon_path
+                shortcut.save()
+                self.updateLogBox(s['type']+' Shortcut Created Successfully')
+                s.clear()
+            except:
+                self.updateLogBox('Could not create '+s['type']+' Shortcut. Ignoring.')
+                self.updateLogBox(traceback.format_exc())
+
+
+    def addToBoot(self):
+        pass

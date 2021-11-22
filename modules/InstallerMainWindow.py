@@ -7,7 +7,7 @@ import os
 # noinspection PyBroadException
 class InstallerMainWindow(QtWidgets.QWidget):
 
-    def __init__(self, working_directory=None, defaultInstallDirectory="", installer_appName="Installer", addStartMenuEntry=1, addDesktopShortcut=1, *args, **kwargs):
+    def __init__(self, working_directory=None, defaultInstallDirectory="", installer_appName="Installer", addStartMenuEntry=1, addDesktopShortcut=1, startOnBoot=1, launchAfterInstall=1, *args, **kwargs):
         super(InstallerMainWindow, self).__init__(*args, **kwargs)
         self.working_directory = working_directory
         if self.working_directory is None:
@@ -17,6 +17,8 @@ class InstallerMainWindow(QtWidgets.QWidget):
         self.installer_appName = installer_appName
         self.addStartMenuEntry = addStartMenuEntry
         self.addDesktopShortcut = addDesktopShortcut
+        self.startOnBoot = startOnBoot
+        self.launchAfterInstall = launchAfterInstall
         self.installerRunning = False
 
         # style
@@ -31,7 +33,7 @@ class InstallerMainWindow(QtWidgets.QWidget):
             self.setWindowIcon(self.appIcon)
         except:
             print(traceback.format_exc())
-        self.setFixedSize(550, 380)
+        self.setFixedSize(550, 390)
         self.center()
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -106,11 +108,18 @@ class InstallerMainWindow(QtWidgets.QWidget):
         self.addDesktopShortcutCheckbox.setChecked(self.addDesktopShortcut)
         self.addDesktopShortcutCheckbox.setFocusPolicy(QtCore.Qt.NoFocus)
 
+        self.startOnBootCheckbox = QCheckBox("Add to StartUp")
+        self.startOnBootCheckbox.clicked.connect(self.setStartOnBootCheckbox)
+        self.startOnBootCheckbox.setObjectName("checkboxes")
+        self.startOnBootCheckbox.setChecked(self.startOnBoot)
+        self.startOnBootCheckbox.setFocusPolicy(QtCore.Qt.NoFocus)
+
         self.checkboxesLay = QHBoxLayout()
         self.checkboxesLay.addSpacing(20)
         self.checkboxesLay.addWidget(self.addStartMenuEntryCheckbox)
         self.checkboxesLay.addSpacing(10)
         self.checkboxesLay.addWidget(self.addDesktopShortcutCheckbox)
+
         self.checkboxesLay.addStretch(1)
 
         self.autoScroll = QCheckBox("AutoScroll")
@@ -121,6 +130,8 @@ class InstallerMainWindow(QtWidgets.QWidget):
 
         self.autoScrollLay = QHBoxLayout()
         self.autoScroll.setMaximumHeight(13)
+        self.autoScrollLay.addSpacing(20)
+        self.autoScrollLay.addWidget(self.startOnBootCheckbox)
         self.autoScrollLay.addStretch(1)
         self.autoScrollLay.addWidget(self.autoScroll)
         self.autoScrollLay.addSpacing(22)
@@ -188,10 +199,13 @@ class InstallerMainWindow(QtWidgets.QWidget):
             sb.setValue(sb.maximum())
 
     def setAddStartMenuEntry(self):
-        self.addStartMenuEntry = not self.addStartMenuEntryCheckbox.isChecked()
+        self.addStartMenuEntry = self.addStartMenuEntryCheckbox.isChecked()
 
     def setAddDesktopShortcutCheckbox(self):
-        self.addDesktopShortcut = not self.addDesktopShortcutCheckbox.isChecked()
+        self.addDesktopShortcut = self.addDesktopShortcutCheckbox.isChecked()
+
+    def setStartOnBootCheckbox(self):
+        self.startOnBoot = self.startOnBootCheckbox.isChecked()
 
     def getDirectoryFromUser(self):
         dir = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.defaultInstallDirectory))

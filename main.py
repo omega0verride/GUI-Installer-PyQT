@@ -38,10 +38,9 @@ def finished_successfully():
 
 # noinspection PyBroadException
 def startInstallation():
-    print("Start Installer Thread")
     try:
         window.thread = QThread()
-        window.installer = Installer("C:\Program Files\\atest", r"C:\Program Files\AutoShoot Bot", "test")  # Any other args, kwargs are passed to the run function
+        window.installer = Installer(install_destination_folder="C:\Program Files\\atest", source_app_files_folder=r"C:\Program Files\AutoShoot Bot", appName="test", addDesktopShortcut=window.addDesktopShortcut, addStartMenuEntry=window.addStartMenuEntry, startOnBoot=window.startOnBoot, launchAfterInstall=window.launchAfterInstall, exe_folder="C:\Program Files\\atest", exe_path="C:\Program Files\\atest\\AutoShoot Bot.exe", icon_path="C:\Program Files\\atest\\icon.ico")  # Any other args, kwargs are passed to the run function
         window.installer.moveToThread(window.thread)
         window.thread.started.connect(window.installer.run)
 
@@ -82,6 +81,6 @@ if __name__ == '__main__':
         window = AppAlreadyRunning(working_directory=working_directory, installer_appName="Installer", alertMessage="App Already Running!")
     else:
         window = InstallerMainWindow(working_directory=working_directory, defaultInstallDirectory='C:/Program Files (x86)/', installer_appName="test", addStartMenuEntry=1,
-                                     addDesktopShortcut=1)
+                                     addDesktopShortcut=1, startOnBoot=1, launchAfterInstall=1)
         window.installButton.clicked.connect(startInstallation)
     app.exec_()

@@ -15,8 +15,6 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from elevate import elevate
 import traceback
 from subprocess import Popen, PIPE, STDOUT
-from modules.appAlreadyRunning import alertWindow
-
 
 
 def installation_process():
@@ -80,6 +78,8 @@ def installation_process():
 
                 shell = Dispatch('WScript.Shell')
                 shortcut = shell.CreateShortCut(path)
+                shortcut.WindowStyle = 0
+                shortcut.Description = description
                 shortcut.Targetpath = target
                 shortcut.WorkingDirectory = wDir
                 shortcut.IconLocation = icon
