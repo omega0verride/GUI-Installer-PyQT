@@ -58,6 +58,18 @@ def startInstallation():
         installation_cancelled()
 
 
+BAD_FILECHARS = ';~,`!%$@$&^?*#:"/|\'\\\t\r\n(){}[]<>'
+GOOD_FILECHARS = '_'*len(BAD_FILECHARS)
+
+def fix_filename(s):
+    t = str(s).translate(str.maketrans(BAD_FILECHARS, GOOD_FILECHARS))
+    if t.count('.') > 1:
+        for i in range(t.count('.') - 1):
+            idot = t.find('.')
+            t = "%s_%s" % (t[:idot], t[idot+1:])
+    return t
+
+
 if __name__ == '__main__':
     elevate()
     working_directory = os.path.dirname(os.path.abspath(__file__))
