@@ -4,27 +4,38 @@ import traceback
 import os
 import platform
 import logging
+
 log = logging.getLogger(__name__)
+
+
 # noinspection PyBroadException
 class InstallerMainWindow(QtWidgets.QWidget):
 
-    def __init__(self, defaultInstallDirectory="", installer_appName="Installer", addStartMenuEntry=1, addDesktopShortcut=1, startOnBoot=1, launchAfterInstall=1, working_directory=None, *args, **kwargs):
+    def __init__(self, default_install_dir="", installer_app_name="Installer",
+                 add_desktop_shortcut=1, show_add_desktop_shortcut_checkbox=1,
+                 add_start_menu_entry=1, show_add_start_menu_entry_checkbox=1,
+                 start_on_boot=1, show_start_on_boot_checkbox=1,
+                 launch_after_install=1,
+                 working_directory=os.getcwd(), *args, **kwargs):
         super(InstallerMainWindow, self).__init__(*args, **kwargs)
         self.working_directory = working_directory
         if self.working_directory is None:
             self.working_directory = os.getcwd()
             log.info("Working directory was not passed as a parameter, this may cause issues accessing stylesheets. Using:", self.working_directory)
-        self.defaultInstallDirectory = defaultInstallDirectory
-        self.installer_appName = installer_appName
-        self.addStartMenuEntry = addStartMenuEntry
-        self.addDesktopShortcut = addDesktopShortcut
-        self.startOnBoot = startOnBoot
-        self.launchAfterInstall = launchAfterInstall
+        self.default_install_dir = default_install_dir
+        self.installer_app_name = installer_app_name
+        self.add_desktop_shortcut = add_desktop_shortcut
+        self.show_add_desktop_shortcut_checkbox = show_add_desktop_shortcut_checkbox
+        self.add_start_menu_entry = add_start_menu_entry
+        self.show_add_start_menu_entry_checkbox = show_add_start_menu_entry_checkbox
+        self.start_on_boot = start_on_boot
+        self.show_start_on_boot_checkbox = show_start_on_boot_checkbox
+        self.launch_after_install = launch_after_install
         self.installerRunning = False
 
         # style
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        self.setWindowTitle(self.installer_appName)
+        self.setWindowTitle(self.installer_app_name)
         try:
             self.setStyleSheet((open(os.path.join(self.working_directory, 'style', 'guiStylesheet.css')).read()))
         except:
@@ -43,7 +54,7 @@ class InstallerMainWindow(QtWidgets.QWidget):
         self.titleLayout = QHBoxLayout()
         self.titleLayout.setContentsMargins(0, 0, 0, 0)
 
-        self.title = QLabel(self.installer_appName)
+        self.title = QLabel(self.installer_app_name)
         self.title.setFixedSize(200, 22)
         self.title.setAlignment(QtCore.Qt.AlignCenter)
         self.title.setObjectName("windowTitle")
@@ -75,7 +86,7 @@ class InstallerMainWindow(QtWidgets.QWidget):
 
         self.directoryInput = QLineEdit()
         self.directoryInput.setFixedWidth(350)
-        self.directoryInput.setText(self.defaultInstallDirectory)
+        self.directoryInput.setText(self.default_install_dir)
         self.directoryInput.textChanged.connect(self.getDirectoryFromQlineEdit)
 
         self.directoryInputButton = QPushButton()
@@ -100,26 +111,28 @@ class InstallerMainWindow(QtWidgets.QWidget):
         self.addStartMenuEntryCheckbox = QCheckBox("Add Start Menu Entry")
         self.addStartMenuEntryCheckbox.clicked.connect(self.setAddStartMenuEntry)
         self.addStartMenuEntryCheckbox.setObjectName("checkboxes")
-        self.addStartMenuEntryCheckbox.setChecked(self.addStartMenuEntry)
+        self.addStartMenuEntryCheckbox.setChecked(self.add_start_menu_entry)
         self.addStartMenuEntryCheckbox.setFocusPolicy(QtCore.Qt.NoFocus)
 
         self.addDesktopShortcutCheckbox = QCheckBox("Add Desktop Shortcut")
         self.addDesktopShortcutCheckbox.clicked.connect(self.setAddDesktopShortcutCheckbox)
         self.addDesktopShortcutCheckbox.setObjectName("checkboxes")
-        self.addDesktopShortcutCheckbox.setChecked(self.addDesktopShortcut)
+        self.addDesktopShortcutCheckbox.setChecked(self.add_desktop_shortcut)
         self.addDesktopShortcutCheckbox.setFocusPolicy(QtCore.Qt.NoFocus)
 
         self.startOnBootCheckbox = QCheckBox("Add to StartUp")
         self.startOnBootCheckbox.clicked.connect(self.setStartOnBootCheckbox)
         self.startOnBootCheckbox.setObjectName("checkboxes")
-        self.startOnBootCheckbox.setChecked(self.startOnBoot)
+        self.startOnBootCheckbox.setChecked(self.start_on_boot)
         self.startOnBootCheckbox.setFocusPolicy(QtCore.Qt.NoFocus)
 
         self.checkboxesLay = QHBoxLayout()
         self.checkboxesLay.addSpacing(20)
-        self.checkboxesLay.addWidget(self.addDesktopShortcutCheckbox)
-        self.checkboxesLay.addSpacing(10)
-        self.checkboxesLay.addWidget(self.startOnBootCheckbox)
+        if self.show_add_desktop_shortcut_checkbox:
+            self.checkboxesLay.addWidget(self.addDesktopShortcutCheckbox)
+            self.checkboxesLay.addSpacing(10)
+        if self.show_start_on_boot_checkbox:
+            self.checkboxesLay.addWidget(self.startOnBootCheckbox)
 
         self.checkboxesLay.addStretch(1)
 
@@ -132,10 +145,11 @@ class InstallerMainWindow(QtWidgets.QWidget):
         self.autoScrollLay = QHBoxLayout()
         self.autoScroll.setMaximumHeight(13)
         self.autoScrollLay.addSpacing(20)
-        if platform.system().lower() != 'darwin':
-            self.autoScrollLay.addWidget(self.addStartMenuEntryCheckbox)
-        else:
-            self.addStartMenuEntry=False
+        if self.show_add_start_menu_entry_checkbox:
+            if platform.system().lower() != 'darwin':
+                self.autoScrollLay.addWidget(self.addStartMenuEntryCheckbox)
+            else:
+                self.add_start_menu_entry = False
         # self.autoScrollLay.addWidget(self.startOnBootCheckbox)
         self.autoScrollLay.addStretch(1)
         self.autoScrollLay.addWidget(self.autoScroll)
@@ -204,23 +218,23 @@ class InstallerMainWindow(QtWidgets.QWidget):
             sb.setValue(sb.maximum())
 
     def setAddStartMenuEntry(self):
-        self.addStartMenuEntry = self.addStartMenuEntryCheckbox.isChecked()
+        self.add_start_menu_entry = self.addStartMenuEntryCheckbox.isChecked()
 
     def setAddDesktopShortcutCheckbox(self):
-        self.addDesktopShortcut = self.addDesktopShortcutCheckbox.isChecked()
+        self.add_desktop_shortcut = self.addDesktopShortcutCheckbox.isChecked()
 
     def setStartOnBootCheckbox(self):
-        self.startOnBoot = self.startOnBootCheckbox.isChecked()
+        self.start_on_boot = self.startOnBootCheckbox.isChecked()
 
     def getDirectoryFromUser(self):
-        dir = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.defaultInstallDirectory))
+        dir = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.default_install_dir))
         if dir:
-            self.defaultInstallDirectory = dir
-            self.directoryInput.setText(self.defaultInstallDirectory)
+            self.default_install_dir = dir
+            self.directoryInput.setText(self.default_install_dir)
 
     def getDirectoryFromQlineEdit(self):
-        self.defaultInstallDirectory = self.directoryInput.text()
-        if os.path.exists(self.defaultInstallDirectory):
+        self.default_install_dir = self.directoryInput.text()
+        if os.path.exists(self.default_install_dir):
             self.errorLabel.setText("")
             if not self.installerRunning:
                 self.installButton.setEnabled(1)
@@ -237,8 +251,6 @@ class InstallerMainWindow(QtWidgets.QWidget):
         if self.autoScroll.isChecked():
             sb = self.logBox.verticalScrollBar()
             sb.setValue(sb.maximum())
-
-    #
 
     # window controls
     def center(self):

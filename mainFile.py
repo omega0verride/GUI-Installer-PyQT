@@ -2,8 +2,9 @@ import os
 import sys
 import traceback
 from PyQt5.QtCore import *
+from PyQt5 import QtWidgets
 from modules.AlertWindow import AppAlreadyRunning
-from modules.InstallerMainWindow import *
+from modules.InstallerMainWindow import InstallerMainWindow
 from modules.Installer import Installer
 import platform
 import logging
@@ -11,12 +12,15 @@ from elevate import elevate
 
 
 # noinspection PyBroadException
+# exceptions are handled by traceback in order to get the whole error stack
 def startInstallation():
     try:
         window.thread = QThread()
-        window.installer = Installer(appName=config.appName, source_app_files_folder=source_app_files_folder, exe_folder=config.exe_folder, exe_path=config.exe_path, icon_path=config.icon_path,
-                                     install_destination_folder=window.defaultInstallDirectory, addDesktopShortcut=window.addDesktopShortcut, addStartMenuEntry=window.addStartMenuEntry,
-                                     startOnBoot=window.startOnBoot, launchAfterInstall=window.launchAfterInstall)  # Any other args, kwargs are passed to the run function
+        window.installer = Installer(app_name=config.app_name, source_app_files_folder=source_app_files_folder, exe_folder=config.exe_folder, exe_path=config.exe_path,
+                                     icon_path=config.icon_path,
+                                     install_destination_folder=window.default_install_dir, add_desktop_shortcut=window.add_desktop_shortcut,
+                                     add_start_menu_entry=window.add_start_menu_entry,
+                                     start_on_boot=window.start_on_boot, launch_after_install=window.launch_after_install)  # Any other args, kwargs are passed to the run function
         window.installer.moveToThread(window.thread)
         window.thread.started.connect(window.installer.run)
 
@@ -57,8 +61,6 @@ def finished_successfully():
     window.exitButton.show()
 
 
-# installation process
-
 BAD_FILECHARS = ';~,`!%$@$&^?*#:"/|\'\\\t\r\n(){}[]<>'
 GOOD_FILECHARS = '_' * len(BAD_FILECHARS)
 
@@ -72,18 +74,10 @@ def fix_filename(s):
     return t
 
 
-def set_app_path():
-    if getattr(sys, 'frozen', False):
-        # running in executable mode
-        app_dir = sys._MEIPASS
-    else:
-        # running in a normal Python environment
-        app_dir = os.path.dirname(os.path.abspath(__file__))
-    os.chdir(app_dir)
-    return app_dir
-
-
 def check_paths():
+    config.exe_path = os.path.normpath(config.exe_path)
+    config.exe_folder = os.path.normpath(config.exe_folder)
+    config.icon_path = os.path.normpath(config.icon_path)
     if not os.path.exists(source_app_files_folder):
         raise Exception("Invalid app source folder. Make sure the AppFiles folder exists in the same directory as this script.")
         exit()
@@ -120,31 +114,57 @@ def set_default_installation_path():
         default_install_dir = config.macOs_default_install_dir
     else:
         return "/"
-    return default_install_dir
+    return os.path.normpath(default_install_dir)
+
+
+def check_config():
+    check_paths()
+    config.app_name = fix_filename(config.app_name)
+    config.default_install_dir = set_default_installation_path()
+    if config.installer_app_name is None:
+        config.installer_app_name = config.app_name + " Installer"
 
 
 def setLogging():
     logging.basicConfig(filename=config.logfile, filemode='a+', format='%(asctime)s %(levelname)-8s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
+def set_app_path():
+    if getattr(sys, 'frozen', False):
+        # running in executable mode
+        app_dir = sys._MEIPASS
+    else:
+        # running in a normal Python environment
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(app_dir)
+    return app_dir
+
 
 class Config:
     def __init__(self):
-        self.appName = "installer"
+        self.app_name = "MyApp"
         self.exe_folder = ""
         self.exe_path = "AutoShoot Bot.exe"
         self.icon_path = "style/icon.ico"
-        self.addDesktopShortcut = True
-        self.addStartMenuEntry = True
-        self.startOnBoot = True
 
-        self.launchAfterInstall = True
         self.x64 = True
+        self.installer_app_name = None
 
         self.linux_default_install_dir = "/usr/local/bin"
         self.x32win_default_install_dir = "C:/Program Files (x86)/"
         self.x62win_default_install_dir = "C:/Program Files/"
         self.macOs_default_install_dir = "/usr/local/bin"
+
+        self.add_desktop_shortcut_default_value = True
+        self.show_add_desktop_shortcut_checkbox = True
+
+        self.add_start_menu_entry_default_value = True
+        self.show_add_start_menu_entry_checkbox = True
+
+        self.start_on_boot_default_value = True
+        self.show_start_on_boot_checkbox = True
+
+        self.launch_after_install = True
 
     logfile = "log.log"
 
@@ -156,26 +176,28 @@ class Config:
 
 
 if __name__ == '__main__':
-
-    # elevate()
+    elevate()
     config = Config()
     try:
         setLogging()
         set_app_path()
-        logging.info(config)
         source_app_files_folder = "AppFiles"
-        check_paths()
-        config.appName = fix_filename(config.appName)
-        defaultInstallDirectory = set_default_installation_path()
+        check_config()
+        logging.info(config)
+        logging.info("default_install_dir:" + config.default_install_dir)
 
         app = QtWidgets.QApplication(sys.argv)
         if 0:
             print('............App Already Running............')
-            window = AppAlreadyRunning(installer_appName=config.appName, alertMessage="App Already Running!", working_directory=os.getcwd())
+            window = AppAlreadyRunning(installer_app_name=config.app_name, alertMessage="App Already Running!", working_directory=os.getcwd())
         else:
-            window = InstallerMainWindow(defaultInstallDirectory=defaultInstallDirectory, installer_appName=config.appName, addStartMenuEntry=config.addStartMenuEntry,
-                                         addDesktopShortcut=config.addDesktopShortcut, startOnBoot=config.startOnBoot, launchAfterInstall=config.launchAfterInstall,
+            window = InstallerMainWindow(default_install_dir=config.default_install_dir, installer_app_name=config.installer_app_name,
+                                         add_desktop_shortcut=config.add_desktop_shortcut_default_value, show_add_desktop_shortcut_checkbox=config.show_add_desktop_shortcut_checkbox,
+                                         add_start_menu_entry=config.add_start_menu_entry_default_value, show_add_start_menu_entry_checkbox=config.show_add_start_menu_entry_checkbox,
+                                         start_on_boot=config.start_on_boot_default_value, show_start_on_boot_checkbox=config.show_start_on_boot_checkbox,
+                                         launch_after_install=config.launch_after_install,
                                          working_directory=os.getcwd())
+
             window.installButton.clicked.connect(startInstallation)
         app.exec_()
     except:
