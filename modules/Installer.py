@@ -1,12 +1,12 @@
-from PyQt5.QtCore import *
-import traceback
-import time
-import os
-import shutil
-from subprocess import Popen, PIPE, STDOUT
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from distutils.dir_util import copy_tree
+from subprocess import Popen
+from shutil import rmtree
+from time import sleep
+import traceback
 import platform
 import logging
+import os
 
 log = logging.getLogger(__name__)
 
@@ -21,8 +21,10 @@ class WorkerSignals(QObject):
     abort = pyqtSignal()
 
 
+# noinspection PyBroadException
 class Installer(QObject):
-    def __init__(self, app_name, source_app_files_folder, exe_folder, exe_path, icon_path, install_destination_folder, add_desktop_shortcut, add_start_menu_entry, start_on_boot, launch_after_install):
+    def __init__(self, app_name, source_app_files_folder, exe_folder, exe_path, icon_path, install_destination_folder, add_desktop_shortcut, add_start_menu_entry, start_on_boot,
+                 launch_after_install):
         super(Installer, self).__init__()
         self.signals = WorkerSignals()
         self.running = 1
@@ -41,46 +43,46 @@ class Installer(QObject):
     @pyqtSlot()
     def run(self):
         try:
-            self.updateLogBox("Starting Installation Process...")
+            self.update_log_box("Starting Installation Process...")
             log.info("Starting Installation Process...")
             self.signals.start.emit()
             self.create_folder_in_install_directory(self.install_destination_folder)
             if self.running:
                 self.copy_files_to_install_dir(self.source_app_files_folder, self.install_destination_folder, )
             if self.running:
-                self.addShortcuts()  # these are not crucial for the installation so we can continue even if they fail.
+                self.add_shortcuts()  # these are not crucial for the installation so we can continue even if they fail.
                 if self.start_on_boot:  # ..
                     self.addToBoot()  # ..
-                self.updateLogBox("\nDone!")
+                self.update_log_box("\nDone!")
                 log.info("\nDone!")
                 if self.launch_after_install:
                     try:
                         Popen(self.exe_path, cwd=self.exe_folder)
                     except:
-                        self.updateLogBox("Could not start the app Automatically. Try starting it manually or check if there is any issue with the app itself.")
+                        self.update_log_box("Could not start the app Automatically. Try starting it manually or check if there is any issue with the app itself.")
                         logging.error(traceback.format_exc())
                 self.signals.finished.emit()
             else:
                 self.signals.abort.emit()
         except:
             log.error(traceback.format_exc())
-            self.updateLogBox(traceback.format_exc())
+            self.update_log_box(traceback.format_exc())
             self.stop()
 
     def stop(self):
         self.running = False
         self.signals.manualExit.emit()
 
-    def updateLogBox(self, data):
+    def update_log_box(self, data):
         self.signals.progress.emit(str(data))
 
     def create_folder_in_install_directory(self, path):
         try:
             if os.path.exists(path):
-                shutil.rmtree(path)
-                time.sleep(2)  # wait for folder to be removed
+                rmtree(path)
+                sleep(2)  # wait for folder to be removed
         except:
-            self.updateLogBox("Could not delete old destination folder -> " + str(path) + "\n Try running as admin or manually deleting the directory.")
+            self.update_log_box("Could not delete old destination folder -> " + str(path) + "\n Try running as admin or manually deleting the directory.")
             log.info(traceback.format_exc())
             self.stop()
             return
@@ -88,7 +90,7 @@ class Installer(QObject):
         try:
             os.makedirs(path, mode=0o777, exist_ok=False)
         except:
-            self.updateLogBox("Could not create destination folder -> " + str(path) + "\n Try running as admin or manually creating the directory.")
+            self.update_log_box("Could not create destination folder -> " + str(path) + "\n Try running as admin or manually creating the directory.")
             log.info(traceback.format_exc())
             self.stop()
             return
@@ -96,42 +98,42 @@ class Installer(QObject):
         try:
             os.chmod(path, 0o777)
         except:
-            self.updateLogBox("Could not modify folder permission. chmod 777 " + str(path) + "\n Try running as admin or manually creating the directory.")
+            self.update_log_box("Could not modify folder permission. chmod 777 " + str(path) + "\n Try running as admin or manually creating the directory.")
             log.error(traceback.format_exc())
             self.stop()
             return
 
         if platform.system().lower() == 'windows':
             try:
-                self.updateLogBox("\nChanging folder permissions for Windows.")
+                self.update_log_box("\nChanging folder permissions for Windows.")
                 log.info("Changing folder permissions for Windows.")
                 self.change_folder_permissions_windows(path)
             except:
-                self.updateLogBox("Could not update folder permissions for Windows.")
+                self.update_log_box("Could not update folder permissions for Windows.")
                 log.error(traceback.format_exc())
                 self.stop()
                 return
 
-        self.updateLogBox("Created Install Folder -> " + str(path))
+        self.update_log_box("Created Install Folder -> " + str(path))
         log.info("Created Install Folder -> " + str(path))
 
     def change_folder_permissions_windows(self, path):
         command = "ICACLS \"%s\" /GRANT Everyone:(OI)(CI)F" % (str(path))
-        p = Popen(command, stdout=PIPE, stderr=STDOUT, shell=True)
+        Popen(command)
 
     def copy_files_to_install_dir(self, src, dest):
-        self.updateLogBox("\nCopying files to install directory...")
+        self.update_log_box("\nCopying files to install directory...")
         log.info("\nCopying files to install directory...")
-        self.updateLogBox(src + " -> " + dest + "\n")
+        self.update_log_box(src + " -> " + dest + "\n")
         log.info(src + " -> " + dest + "\n")
         try:
             copy_tree(src, dest)
         except:
-            self.updateLogBox("Could not copy files! Try running as admin.")
+            self.update_log_box("Could not copy files! Try running as admin.")
             log.error(traceback.format_exc())
             self.stop()
 
-    def addShortcuts(self):
+    def add_shortcuts(self):
         system = platform.system().lower()
         if system == 'windows':
             self.add_win_shortcuts()
@@ -154,7 +156,7 @@ class Installer(QObject):
             shortcuts.append(StartMenu)
         for s in shortcuts:
             try:
-                self.updateLogBox('\nCreating ' + s['type'] + ' Shortcut ')
+                self.update_log_box('\nCreating ' + s['type'] + ' Shortcut ')
                 log.info('\nCreating ' + s['type'] + ' Shortcut ')
                 shortcut = s['shortcut']
                 shortcut.WindowStyle = 0
@@ -163,11 +165,11 @@ class Installer(QObject):
                 shortcut.WorkingDirectory = self.exe_folder
                 shortcut.IconLocation = self.icon_path
                 shortcut.save()
-                self.updateLogBox(s['type'] + ' Shortcut Created Successfully')
+                self.update_log_box(s['type'] + ' Shortcut Created Successfully')
                 log.info(s['type'] + ' Shortcut Created Successfully')
                 s.clear()
             except:
-                self.updateLogBox('Could not create ' + s['type'] + ' Shortcut. Ignoring.')
+                self.update_log_box('Could not create ' + s['type'] + ' Shortcut. Ignoring.')
                 log.info(traceback.format_exc())
 
     def add_linux_shortcuts(self):
@@ -179,21 +181,21 @@ class Installer(QObject):
     def addToBoot(self):
         system = platform.system().lower()
         if system == 'windows':
-            self.win_add_to_Startup()
+            self.win_add_to_startup()
         elif system == 'linux':
-            self.linux_add_to_Startup()
+            self.linux_add_to_startup()
         elif system == 'darwin':
-            self.mac_add_to_Startup()
+            self.mac_add_to_startup()
 
-    def win_add_to_Startup(self):
+    def win_add_to_startup(self):
         try:
             import winshell
             from win32com.client import Dispatch
             from win32com.shell import shell, shellcon
             shell_ = Dispatch('WScript.Shell')
-            path=os.path.join(self.exe_folder, "%s.lnk" % self.app_name)
+            path = os.path.join(self.exe_folder, "%s.lnk" % self.app_name)
             shortcut = shell_.CreateShortCut(path)
-            self.updateLogBox('\nCreating Startup Shortcut ')
+            self.update_log_box('\nCreating Startup Shortcut ')
             log.info('\nCreating Startup Shortcut ')
             shortcut.WindowStyle = 0
             shortcut.Description = self.app_name
@@ -203,14 +205,14 @@ class Installer(QObject):
             shortcut.save()
             # to remove the shortcut from the app itself you would have to delete this key
             Popen(r'reg.exe add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "{}" /t REG_SZ /f /d "\"{}\""'.format(self.app_name, path))
-            self.updateLogBox('Startup Shortcut Created Successfully')
+            self.update_log_box('Startup Shortcut Created Successfully')
             log.info('Startup Shortcut Created Successfully')
         except:
-            self.updateLogBox('Could not create Startup Shortcut. Ignoring.')
+            self.update_log_box('Could not create Startup Shortcut. Ignoring.')
             log.info(traceback.format_exc())
 
-    def linux_add_to_Startup(self):
+    def linux_add_to_startup(self):
         pass
 
-    def mac_add_to_Startup(self):
+    def mac_add_to_startup(self):
         pass

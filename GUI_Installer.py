@@ -1,19 +1,19 @@
-import os
-import sys
-import traceback
-from PyQt5.QtCore import *
-from PyQt5 import QtWidgets
-from modules.AlertWindow import AppAlreadyRunning
 from modules.InstallerMainWindow import InstallerMainWindow
+from modules.AlertWindow import AppAlreadyRunning
 from modules.Installer import Installer
+from elevate import elevate
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import *
+import traceback
 import platform
 import logging
-from elevate import elevate
+import sys
+import os
 
 
 # noinspection PyBroadException
 # exceptions are handled by traceback in order to get the whole error stack
-def startInstallation():
+def start_installation():
     try:
         window.thread = QThread()
         window.installer = Installer(app_name=config.app_name, source_app_files_folder=source_app_files_folder, exe_folder=config.exe_folder, exe_path=config.exe_path,
@@ -24,7 +24,7 @@ def startInstallation():
         window.installer.moveToThread(window.thread)
         window.thread.started.connect(window.installer.run)
 
-        window.installer.signals.progress.connect(updateFromInstaller)
+        window.installer.signals.progress.connect(update_from_installer)
         window.installer.signals.start.connect(started_successfully)
         window.installer.signals.manualExit.connect(installation_cancelled)
         window.installer.signals.finished.connect(finished_successfully)
@@ -37,7 +37,7 @@ def startInstallation():
         installation_cancelled()
 
 
-def updateFromInstaller(data):
+def update_from_installer(data):
     logging.info(data)
     window.updateLogBox(data)
 
@@ -125,7 +125,7 @@ def check_config():
         config.installer_app_name = config.app_name + " Installer"
 
 
-def setLogging():
+def set_logging():
     logging.basicConfig(filename=config.logfile, filemode='a+', format='%(asctime)s %(levelname)-8s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
@@ -142,19 +142,22 @@ def set_app_path():
 
 class Config:
     def __init__(self):
-        self.app_name = "MyApp"
-        self.exe_folder = ""
-        self.exe_path = "AutoShoot Bot.exe"
-        self.icon_path = "style/icon.ico"
+        self.app_name = "MyApp"  # name of app
+        # copy all the files of your app into the AppFiles folder of this project, the following are relative paths to that folder
+        self.exe_folder = ""  # folder where the executable is located (working directory) leave empty if the same. Please do not pass a full(absolute) path
+        self.exe_path = "AutoShoot Bot.exe"  # relative path to the executable
+        self.icon_path = "style/icon.ico"  # relative path to the icon (recommended to be an .ico file)
 
-        self.x64 = True
-        self.installer_app_name = None
+        self.x64 = True  # set this to true if your app is 64 bit (this will affect only windows installation dir)
+        self.installer_app_name = None  # set this to the name of this installer, if none it will automatically be app_name+"Installer"
 
+        # default installation directories
         self.linux_default_install_dir = "/usr/local/bin"
         self.x32win_default_install_dir = "C:/Program Files (x86)/"
         self.x62win_default_install_dir = "C:/Program Files/"
         self.macOs_default_install_dir = "/usr/local/bin"
 
+        # use these to set which checkboxes are shown and their default value
         self.add_desktop_shortcut_default_value = True
         self.show_add_desktop_shortcut_checkbox = True
 
@@ -164,6 +167,7 @@ class Config:
         self.start_on_boot_default_value = True
         self.show_start_on_boot_checkbox = True
 
+        # set if you want to launch the app after installing it
         self.launch_after_install = True
 
     logfile = "log.log"
@@ -178,8 +182,9 @@ class Config:
 if __name__ == '__main__':
     elevate()
     config = Config()
+    # noinspection PyBroadException
     try:
-        setLogging()
+        set_logging()
         set_app_path()
         source_app_files_folder = "AppFiles"
         check_config()
@@ -187,7 +192,7 @@ if __name__ == '__main__':
         logging.info("default_install_dir:" + config.default_install_dir)
 
         app = QtWidgets.QApplication(sys.argv)
-        if 0:
+        if 0:  # not implemented will probably be removed since it is not necessary
             print('............App Already Running............')
             window = AppAlreadyRunning(installer_app_name=config.app_name, alertMessage="App Already Running!", working_directory=os.getcwd())
         else:
@@ -198,7 +203,7 @@ if __name__ == '__main__':
                                          launch_after_install=config.launch_after_install,
                                          working_directory=os.getcwd())
 
-            window.installButton.clicked.connect(startInstallation)
+            window.installButton.clicked.connect(start_installation)
         app.exec_()
     except:
         logging.error(traceback.format_exc())

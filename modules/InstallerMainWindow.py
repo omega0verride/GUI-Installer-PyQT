@@ -1,9 +1,9 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtWidgets import *
 import traceback
-import os
 import platform
 import logging
+import os
 
 log = logging.getLogger(__name__)
 
@@ -12,10 +12,10 @@ log = logging.getLogger(__name__)
 class InstallerMainWindow(QtWidgets.QWidget):
 
     def __init__(self, default_install_dir="", installer_app_name="Installer",
-                 add_desktop_shortcut=1, show_add_desktop_shortcut_checkbox=1,
-                 add_start_menu_entry=1, show_add_start_menu_entry_checkbox=1,
-                 start_on_boot=1, show_start_on_boot_checkbox=1,
-                 launch_after_install=1,
+                 add_desktop_shortcut=True, show_add_desktop_shortcut_checkbox=True,
+                 add_start_menu_entry=True, show_add_start_menu_entry_checkbox=True,
+                 start_on_boot=True, show_start_on_boot_checkbox=True,
+                 launch_after_install=True,
                  working_directory=os.getcwd(), *args, **kwargs):
         super(InstallerMainWindow, self).__init__(*args, **kwargs)
         self.working_directory = working_directory
@@ -139,7 +139,7 @@ class InstallerMainWindow(QtWidgets.QWidget):
         self.autoScroll = QCheckBox("AutoScroll")
         self.autoScroll.clicked.connect(self.setAutoScroll)
         self.autoScroll.setObjectName("autoScroll")
-        self.autoScroll.setChecked(1)
+        self.autoScroll.setChecked(True)
         self.autoScroll.setFocusPolicy(QtCore.Qt.NoFocus)
 
         self.autoScrollLay = QHBoxLayout()
@@ -227,9 +227,9 @@ class InstallerMainWindow(QtWidgets.QWidget):
         self.start_on_boot = self.startOnBootCheckbox.isChecked()
 
     def getDirectoryFromUser(self):
-        dir = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.default_install_dir))
-        if dir:
-            self.default_install_dir = dir
+        directory = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.default_install_dir))
+        if directory:
+            self.default_install_dir = directory
             self.directoryInput.setText(self.default_install_dir)
 
     def getDirectoryFromQlineEdit(self):
@@ -237,10 +237,10 @@ class InstallerMainWindow(QtWidgets.QWidget):
         if os.path.exists(self.default_install_dir):
             self.errorLabel.setText("")
             if not self.installerRunning:
-                self.installButton.setEnabled(1)
+                self.installButton.setEnabled(True)
         else:
             self.errorLabel.setText("This directory does not Exists. Please choose a valid directory.")
-            self.installButton.setDisabled(1)
+            self.installButton.setDisabled(True)
 
     # -------------------------------------------------------------------------------------------------
 
