@@ -142,11 +142,11 @@ def set_app_path():
 
 class Config:
     def __init__(self):
-        self.app_name = "MyApp"  # name of app
+        self.app_name = "Epoka ACM Scrapper"  # name of app
         # copy all the files of your app into the AppFiles folder of this project, the following are relative paths to that folder
         self.exe_folder = ""  # folder where the executable is located (working directory) leave empty if the same. Please do not pass a full(absolute) path
-        self.exe_path = "AutoShoot Bot.exe"  # relative path to the executable
-        self.icon_path = "style/icon.ico"  # relative path to the icon (recommended to be an .ico file)
+        self.exe_path = "acm_scrapper.exe"  # relative path to the executable
+        self.icon_path = "style/acm.ico"  # relative path to the icon (recommended to be an .ico file)
 
         self.x64 = True  # set this to true if your app is 64 bit (this will affect only windows installation dir)
         self.installer_app_name = None  # set this to the name of this installer, if none it will automatically be app_name+"Installer"
@@ -179,15 +179,17 @@ class Config:
         return s
 
 
+# please change the variables of config class first
 if __name__ == '__main__':
-    elevate()
     config = Config()
+    set_app_path()
+    set_logging()
+    source_app_files_folder = "AppFiles"
+    check_config()
+    elevate()
     # noinspection PyBroadException
     try:
-        set_logging()
         set_app_path()
-        source_app_files_folder = "AppFiles"
-        check_config()
         logging.info(config)
         logging.info("default_install_dir:" + config.default_install_dir)
 
