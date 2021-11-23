@@ -2,4 +2,4 @@
 A custom simple GUI installer for desktop applications.
 
 
-![Screenshot](DocumenatitonFiles/sc1.png)
+![Screenshot](DocumentationFiles/sc1.png)
