@@ -2,16 +2,17 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtWidgets import *
 import traceback
 import os
-
+import logging
+log = logging.getLogger(__name__)
 
 # noinspection PyBroadException
 class AppAlreadyRunning(QtWidgets.QWidget):
-    def __init__(self, working_directory=None, installer_appName="Installer", alertMessage="App Already Running!", *args, **kwargs):
+    def __init__(self, installer_appName="Installer", alertMessage="App Already Running!", working_directory=None, *args, **kwargs):
         super(AppAlreadyRunning, self).__init__(*args, **kwargs)
         self.working_directory = working_directory
         if self.working_directory is None:
             self.working_directory = os.getcwd()
-            print("Working directory was not passed as a parameter, this may cause issues accessing stylesheets. Using:", self.working_directory)
+            log.info("Working directory was not passed as a parameter, this may cause issues accessing stylesheets. Using:", self.working_directory)
 
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.setFixedSize(250, 100)
@@ -21,12 +22,12 @@ class AppAlreadyRunning(QtWidgets.QWidget):
         try:
             self.setStyleSheet(open(os.path.join(self.working_directory, 'style', 'alertWindowStylesheet.css')).read())
         except:
-            print(traceback.format_exc())
+            log.error(traceback.format_exc())
         try:
             self.appIcon = QtGui.QIcon(os.path.join(self.working_directory, 'style', 'installer_icon.ico'))
             self.setWindowIcon(self.appIcon)
         except:
-            print(traceback.format_exc())
+            log.error(traceback.format_exc())
 
         self.btn_close = QPushButton("x")
         self.btn_close.clicked.connect(self.close)

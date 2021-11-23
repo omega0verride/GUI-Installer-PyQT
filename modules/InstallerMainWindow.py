@@ -2,17 +2,18 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtWidgets import *
 import traceback
 import os
-
-
+import platform
+import logging
+log = logging.getLogger(__name__)
 # noinspection PyBroadException
 class InstallerMainWindow(QtWidgets.QWidget):
 
-    def __init__(self, working_directory=None, defaultInstallDirectory="", installer_appName="Installer", addStartMenuEntry=1, addDesktopShortcut=1, startOnBoot=1, launchAfterInstall=1, *args, **kwargs):
+    def __init__(self, defaultInstallDirectory="", installer_appName="Installer", addStartMenuEntry=1, addDesktopShortcut=1, startOnBoot=1, launchAfterInstall=1, working_directory=None, *args, **kwargs):
         super(InstallerMainWindow, self).__init__(*args, **kwargs)
         self.working_directory = working_directory
         if self.working_directory is None:
             self.working_directory = os.getcwd()
-            print("Working directory was not passed as a parameter, this may cause issues accessing stylesheets. Using:", self.working_directory)
+            log.info("Working directory was not passed as a parameter, this may cause issues accessing stylesheets. Using:", self.working_directory)
         self.defaultInstallDirectory = defaultInstallDirectory
         self.installer_appName = installer_appName
         self.addStartMenuEntry = addStartMenuEntry
@@ -27,12 +28,12 @@ class InstallerMainWindow(QtWidgets.QWidget):
         try:
             self.setStyleSheet((open(os.path.join(self.working_directory, 'style', 'guiStylesheet.css')).read()))
         except:
-            print(traceback.format_exc())
+            log.error(traceback.format_exc())
         try:
             self.appIcon = QtGui.QIcon(os.path.join(self.working_directory, 'style', 'installer_icon.ico'))
             self.setWindowIcon(self.appIcon)
         except:
-            print(traceback.format_exc())
+            log.error(traceback.format_exc())
         self.setFixedSize(550, 390)
         self.center()
         self.layout = QVBoxLayout()
@@ -116,9 +117,9 @@ class InstallerMainWindow(QtWidgets.QWidget):
 
         self.checkboxesLay = QHBoxLayout()
         self.checkboxesLay.addSpacing(20)
-        self.checkboxesLay.addWidget(self.addStartMenuEntryCheckbox)
-        self.checkboxesLay.addSpacing(10)
         self.checkboxesLay.addWidget(self.addDesktopShortcutCheckbox)
+        self.checkboxesLay.addSpacing(10)
+        self.checkboxesLay.addWidget(self.startOnBootCheckbox)
 
         self.checkboxesLay.addStretch(1)
 
@@ -131,7 +132,11 @@ class InstallerMainWindow(QtWidgets.QWidget):
         self.autoScrollLay = QHBoxLayout()
         self.autoScroll.setMaximumHeight(13)
         self.autoScrollLay.addSpacing(20)
-        self.autoScrollLay.addWidget(self.startOnBootCheckbox)
+        if platform.system().lower() != 'darwin':
+            self.autoScrollLay.addWidget(self.addStartMenuEntryCheckbox)
+        else:
+            self.addStartMenuEntry=False
+        # self.autoScrollLay.addWidget(self.startOnBootCheckbox)
         self.autoScrollLay.addStretch(1)
         self.autoScrollLay.addWidget(self.autoScroll)
         self.autoScrollLay.addSpacing(22)
@@ -214,10 +219,7 @@ class InstallerMainWindow(QtWidgets.QWidget):
             self.directoryInput.setText(self.defaultInstallDirectory)
 
     def getDirectoryFromQlineEdit(self):
-        print("---------")
         self.defaultInstallDirectory = self.directoryInput.text()
-        print(self.defaultInstallDirectory)
-        print(os.path.exists(self.defaultInstallDirectory))
         if os.path.exists(self.defaultInstallDirectory):
             self.errorLabel.setText("")
             if not self.installerRunning:
