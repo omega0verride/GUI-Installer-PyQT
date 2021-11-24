@@ -55,7 +55,6 @@ class InstallerMainWindow(QtWidgets.QWidget):
         self.titleLayout.setContentsMargins(0, 0, 0, 0)
 
         self.title = QLabel(self.installer_app_name)
-        self.title.setFixedSize(200, 22)
         self.title.setAlignment(QtCore.Qt.AlignCenter)
         self.title.setObjectName("windowTitle")
 
